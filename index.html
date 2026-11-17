@@ -53,7 +53,7 @@
       <div class="holo controls" id="paneCtl">
         <div class="ctl yokebox">
           <h3 class="ykh">Yugo <span class="ymode gyroOnly" role="group" aria-label="Control del elevador"><button id="mTouch" class="on">Táctil</button><button id="mGyro">Giro</button></span></h3>
-          <div class="yoke" id="yoke" aria-label="Yugo virtual: arrastra"><div class="knob" id="knob"></div><span class="t">TIRAR</span><span class="b">EMPUJAR</span><span class="l">IZQ</span><span class="r">DER</span><button class="gcal" id="gyroCal">Centrar</button><span class="gtag" id="gyroTag">GIROSCOPIO · profundidad</span></div>
+          <div class="yoke" id="yoke" aria-label="Yugo virtual: arrastra"><div class="knob" id="knob"></div><span class="t">TIRAR</span><span class="b">EMPUJAR</span><span class="l">IZQ</span><span class="r">DER</span><button class="gcal" id="gyroCal">Centrar</button><span class="gtag" id="gyroTag">GIROSCOPIO</span></div>
         </div>
         <div class="ctl rows">
           <div class="row"><span class="lb">Acelerador</span><input id="thr" type="range" min="0" max="100" value="70" aria-label="Acelerador"><b id="rpmv" class="mono">2350</b></div>
@@ -114,12 +114,12 @@
         <h3 class="bh">Avión</h3>
         <div class="seg bseg" id="bPlane"><button data-bac="pa28" class="pa28">Piper PA-28 · ala baja</button><button data-bac="c172" class="c172">Cessna 172 · ala alta</button></div>
         <div class="bspeeds mono" id="bSpeeds"></div>
-        <h3 class="bh gyroOnly">Control del elevador (profundidad)</h3>
+        <h3 class="bh gyroOnly">Control del yugo</h3>
         <div class="seg bseg gyroOnly" id="bCtl"><button data-bctl="touch" class="cy">Yugo táctil</button><button data-bctl="gyro" class="cy">Giroscopio del teléfono</button></div>
         <div id="bGyro" class="bgyro" hidden>
           <div class="seg bseg" id="bSens"><button data-sens="baja" class="cy">Sensibilidad baja</button><button data-sens="media" class="cy">Media</button></div>
           <label class="inv"><input type="checkbox" id="bInv"> Invertir (inclinar la parte de arriba hacia ti = nariz abajo)</label>
-          <p class="gnote">Sostén el teléfono en la posición cómoda y pulsa <b>Iniciar</b>: esa posición queda como neutro. Inclina la parte de arriba del teléfono hacia ti para tirar (nariz arriba) y hacia afuera para empujar. Los alerones siguen en el yugo (arrastrar a los lados). Botón <b>Centrar</b> para fijar el neutro de nuevo.</p>
+          <p class="gnote">Sostén el teléfono en la posición cómoda y pulsa <b>Iniciar</b>: esa posición queda como neutro. <b>Cabeceo:</b> inclina la parte de arriba del teléfono hacia ti para tirar (nariz arriba) y hacia afuera para empujar. <b>Virajes:</b> inclina el teléfono a la derecha o a la izquierda (baja ese lado) para mover los alerones. Botón <b>Centrar</b> para fijar el neutro de nuevo.</p>
         </div>
         <p class="gmsg" id="gMsg"></p>
         <div class="bbtns"><button class="btn alt" id="bBack">◀ Otra lección</button><button class="btn go" id="bStart">Iniciar ▶</button></div>

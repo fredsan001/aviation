@@ -308,7 +308,7 @@ function msg() {
 
 // ---------------- física ----------------
 function step(dt) {
-  const ePress = (inp.up - inp.dn) + (ctlMode === 'gyro' ? gyro.elev : (yoke ? -yoke.y : 0)), aPress = (inp.rt - inp.lt) + (yoke ? yoke.x : 0);
+  const ePress = (inp.up - inp.dn) + (ctlMode === 'gyro' ? gyro.elev : (yoke ? -yoke.y : 0)), aPress = (inp.rt - inp.lt) + (yoke ? yoke.x : 0) + (ctlMode === 'gyro' ? gyro.ail : 0);
   st.elev += (clamp(ePress, -1, 1) - st.elev) * Math.min(1, dt * 6);
   st.ail += (clamp(aPress, -1, 1) - st.ail) * Math.min(1, dt * 8);
   st.rudSet = clamp(st.rudSet + (inp.rr - inp.rl) * dt * 0.9, -1, 1); if (Math.abs(st.rudSet) < 0.02 && !inp.rr && !inp.rl) st.rudSet = 0;
@@ -525,31 +525,35 @@ let ctlMode = 'touch', gyroSens = 'baja', gyroInv = false;
 // el giroscopio solo funciona si la página se abre sola (fuera del marco de Claude) y por https
 const canGyro = (() => { try { return window.self === window.top && typeof DeviceOrientationEvent !== 'undefined' && window.isSecureContext; } catch (e) { return false; } })();
 if (!canGyro) document.querySelectorAll('.gyroOnly').forEach(el => el.style.display = 'none');
-const gyro = { on: false, b0: null, v: null, elev: 0, got: 0 };
+const gyro = { on: false, b0: null, v: null, elev: 0, ail: 0, got: 0 };
 function tiltVal(e) { const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-  if (e.beta == null) return null; if (ang === 90) return -e.gamma; if (ang === -90 || ang === 270) return e.gamma; if (ang === 180) return -e.beta; return e.beta; }
-function onOrient(e) { const v = tiltVal(e); if (v == null) return; gyro.v = v; gyro.got++; if (gyro.b0 == null) gyro.b0 = v;
-  let d = v - gyro.b0; if (d > 180) d -= 360; if (d < -180) d += 360;
-  const dz = 2.5, K = gyroSens === 'baja' ? 40 : 25; const m = Math.abs(d) < dz ? 0 : (d - Math.sign(d) * dz) / K;
-  const tgt = clamp((gyroInv ? 1 : -1) * m, -1, 1); gyro.elev += (tgt - gyro.elev) * 0.18; }
+  if (e.beta == null || e.gamma == null) return null;
+  if (ang === 90) return [-e.gamma, e.beta]; if (ang === -90 || ang === 270) return [e.gamma, -e.beta]; if (ang === 180) return [-e.beta, -e.gamma]; return [e.beta, e.gamma]; }
+const wrap = d => (d > 180 ? d - 360 : d < -180 ? d + 360 : d);
+const shape = (d, dz, K) => (Math.abs(d) < dz ? 0 : (d - Math.sign(d) * dz) / K);
+function onOrient(e) { const v = tiltVal(e); if (!v) return; gyro.v = v; gyro.got++; if (gyro.b0 == null) gyro.b0 = v.slice();
+  const K = gyroSens === 'baja' ? 40 : 25, KR = gyroSens === 'baja' ? 35 : 22;
+  const tp = clamp((gyroInv ? 1 : -1) * shape(wrap(v[0] - gyro.b0[0]), 2.5, K), -1, 1);
+  const tr = clamp(shape(wrap(v[1] - gyro.b0[1]), 3, KR), -1, 1);
+  gyro.elev += (tp - gyro.elev) * 0.18; gyro.ail += (tr - gyro.ail) * 0.18; }
 async function enableGyro() {
   const msgEl = $('gMsg'); msgEl.textContent = '';
   try { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') throw new Error('perm'); } }
   catch (err) { setCtl('touch'); msgEl.textContent = 'No se dio permiso para usar el giroscopio. Seguimos con el yugo táctil.'; return false; }
   if (!gyro.on) { addEventListener('deviceorientation', onOrient); gyro.on = true; }
-  gyro.b0 = null; gyro.elev = 0; const n0 = gyro.got;
+  gyro.b0 = null; gyro.elev = 0; gyro.ail = 0; const n0 = gyro.got;
   setTimeout(() => { if (ctlMode === 'gyro' && gyro.got === n0) { setCtl('touch'); const t = 'Este teléfono o navegador no envía datos del giroscopio en esta página. Seguimos con el yugo táctil.'; $('gMsg').textContent = t; showToast(t); } }, 1800);
   return true; }
 function setCtl(m) { ctlMode = m; $('mTouch').classList.toggle('on', m === 'touch'); $('mGyro').classList.toggle('on', m === 'gyro'); $('yoke').classList.toggle('gyro', m === 'gyro');
-  document.querySelectorAll('[data-bctl]').forEach(b => b.classList.toggle('on', b.dataset.bctl === m)); $('bGyro').hidden = m !== 'gyro'; if (m !== 'gyro') gyro.elev = 0; }
+  document.querySelectorAll('[data-bctl]').forEach(b => b.classList.toggle('on', b.dataset.bctl === m)); $('bGyro').hidden = m !== 'gyro'; if (m !== 'gyro') { gyro.elev = 0; gyro.ail = 0; } }
 $('mTouch').addEventListener('click', () => setCtl('touch'));
 $('mGyro').addEventListener('click', () => { setCtl('gyro'); enableGyro(); });
-$('gyroCal').addEventListener('click', e => { e.stopPropagation(); gyro.b0 = gyro.v; gyro.elev = 0; });
+$('gyroCal').addEventListener('click', e => { e.stopPropagation(); gyro.b0 = gyro.v ? gyro.v.slice() : null; gyro.elev = 0; gyro.ail = 0; });
 $('gyroCal').addEventListener('pointerdown', e => e.stopPropagation());
 function showToast(t) { const a = $('alert'); a.textContent = t; a.style.display = 'block'; a.style.whiteSpace = 'normal'; a.style.background = 'rgba(30,41,59,.95)'; a.style.boxShadow = 'none'; a.style.fontSize = '12px'; a.style.letterSpacing = '0';
   setTimeout(() => { a.style.display = ''; a.style.whiteSpace = ''; a.style.background = ''; a.style.boxShadow = ''; a.style.fontSize = ''; a.style.letterSpacing = ''; a.textContent = ''; }, 5000); }
-function gyroKnob() { if (ctlMode !== 'gyro') return; const r = $('yoke').getBoundingClientRect(); const x = yoke ? yoke.x : 0;
+function gyroKnob() { if (ctlMode !== 'gyro') return; const r = $('yoke').getBoundingClientRect(); const x = clamp((yoke ? yoke.x : 0) + gyro.ail, -1, 1);
   $('knob').style.transform = `translate(${x * (r.width / 2 - 30)}px,${-gyro.elev * (r.height / 2 - 30)}px)`; }
 
 // ---------------- inicio: elegir lección + briefing + Iniciar ----------------
