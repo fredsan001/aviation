@@ -226,3 +226,6 @@ footer{margin-top:18px;color:var(--sub);font-size:12px;display:flex;justify-cont
 
 .gcal.ginv{right:auto;left:6px}
 .yoke.gyro .gtag{display:none}
+
+.gcal.ginvr{bottom:auto;top:6px}
+.yoke.gyro .t{display:none}
