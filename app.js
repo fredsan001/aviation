@@ -7,9 +7,9 @@
 // Convenciones: nariz +X, arriba +Y, ala derecha +Z · bank + = derecha · rumbo 0 = norte (−Z)
 // ============================================================
 import * as THREE from 'three';
-import { makeC172 } from './c172.js?v=17';
-import { makePA28 } from './pa28.js?v=17';
-import { drawStrip, stripHeight } from './panel.js?v=17';
+import { makeC172 } from './c172.js?v=18';
+import { makePA28 } from './pa28.js?v=18';
+import { drawStrip, stripHeight } from './panel.js?v=18';
 
 const D2R = Math.PI / 180, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k;
 const $ = id => document.getElementById(id);
@@ -531,10 +531,10 @@ const gvec = (b, g) => { const B = b * D2R, Gm = g * D2R; return [Math.cos(B) * 
 const vdot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2], vsub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]], vlen = p => Math.hypot(...p);
 const vortho = (d, n) => { const k = vdot(d, n), r = [d[0] - k * n[0], d[1] - k * n[1], d[2] - k * n[2]], l = vlen(r); return l < 1e-3 ? null : r.map(x => x / l); };
 const shape = (d, dz, K) => (Math.abs(d) < dz ? 0 : (d - Math.sign(d) * dz) / K);
-let gcal = null; try { gcal = JSON.parse(localStorage.getItem('c2sim-gyrocal') || 'null'); } catch (e) {}
+let gcal = null; try { gcal = JSON.parse(localStorage.getItem('c2sim-gyrocal2') || 'null'); } catch (e) {}
 function setNeutral(g) { gyro.g0 = g.slice();
-  const R = (gcal && gcal.dR) || [1, 0, 0], U = (gcal && gcal.dU) || [0, 1, 0];
-  gyro.dR = vortho(R, gyro.g0) || vortho([1, 0, 0], gyro.g0); gyro.dU = vortho(vortho(U, gyro.g0) || [0, 1, 0], gyro.dR) || vortho([0, 1, 0], gyro.g0); gyro.elev = 0; gyro.ail = 0; }
+  const R = (gcal && gcal.dR) || [1, 0, 0], U = (gcal && gcal.dU) || [0, -1, 0];
+  gyro.dR = vortho(R, gyro.g0) || vortho([1, 0, 0], gyro.g0); gyro.dU = vortho(vortho(U, gyro.g0) || [0, -1, 0], gyro.dR) || vortho([0, -1, 0], gyro.g0); gyro.elev = 0; gyro.ail = 0; }
 function onOrient(e) { if (e.beta == null || e.gamma == null) return; gyro.raw = [e.beta, e.gamma]; const g = gvec(e.beta, e.gamma); gyro.g = g; gyro.got++;
   if (!gyro.g0) setNeutral(g);
   gyro.roll = Math.asin(clamp(vdot(g, gyro.dR), -1, 1)) / D2R; gyro.pitch = Math.asin(clamp(vdot(g, gyro.dU), -1, 1)) / D2R;
@@ -556,9 +556,9 @@ const CAL = [
   { t: 'Toca <b>Activar giroscopio</b>.', b: 'Activar giroscopio' },
   { t: 'Sostén el teléfono como vas a volar y toca <b>Fijar neutro</b>.', b: 'Fijar neutro' },
   { t: 'Inclina el teléfono como si viraras a la <b>DERECHA</b> (como un volante o bajando el lado derecho) y, sin moverlo, toca <b>Listo</b>.', b: 'Listo' },
-  { t: 'Vuelve al centro e inclina el teléfono para <b>SUBIR LA NARIZ</b> (tirar del yugo) y, sin moverlo, toca <b>Listo</b>.', b: 'Listo' },
-  { t: '<b>Prueba:</b> vira a los dos lados, sube y baja la nariz. Cuando veas las cuatro ✓, toca <b>Iniciar</b>.', b: 'Repetir calibración' }];
-function calRender() { const s = CAL[calStep]; $('calTxt').innerHTML = `<span class="cn2">${Math.min(calStep + 1, 5)}/5</span> ${s.t}`; $('calBtn').textContent = s.b; $('calChecks').hidden = calStep < 4;
+  { t: 'Vuelve al centro y lleva la parte de arriba del teléfono <b>hacia ti</b> (el teléfono queda más vertical, como tirar del yugo): eso será <b>SUBIR LA NARIZ</b>. Sin moverlo, toca <b>Listo</b>. Teléfono hacia abajo = bajar la nariz.', b: 'Listo' },
+  { t: '<b>Prueba:</b> vira a los dos lados, sube y baja la nariz. Si la nariz se mueve al revés, toca <b>Invertir cabeceo</b>. Cuando veas las cuatro ✓, toca <b>Iniciar</b>.', b: 'Repetir calibración' }];
+function calRender() { const s = CAL[calStep]; $('calTxt').innerHTML = `<span class="cn2">${Math.min(calStep + 1, 5)}/5</span> ${s.t}`; $('calBtn').textContent = s.b; $('calChecks').hidden = calStep < 4; $('calInv').hidden = calStep < 4;
   $('calChecks').innerHTML = [['r', 'Viraje derecha'], ['l', 'Viraje izquierda'], ['u', 'Nariz arriba'], ['d', 'Nariz abajo']].map(([k, n]) => `<span class="${calHits[k] ? 'ok' : ''}">${calHits[k] ? '✓' : '○'} ${n}</span>`).join(''); }
 $('calBtn').addEventListener('click', async () => { const m = $('gMsg'); m.textContent = '';
   if (calStep === 0) { setCtl('gyro'); if (await enableGyro()) { calStep = 1; gyro.g0 = null; } }
@@ -566,9 +566,10 @@ $('calBtn').addEventListener('click', async () => { const m = $('gMsg'); m.textC
   else if (calStep === 2) { const d = vsub(gyro.g, gyro.g0); if (vlen(d) < 0.14) { m.textContent = 'Inclina un poco más (unos 15°) y toca Listo.'; return; } gcal = { dR: vortho(d, gyro.g0), kR: 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R }; setNeutral(gyro.g0); calStep = 3; }
   else if (calStep === 3) { const d = vsub(gyro.g, gyro.g0); if (vlen(d) < 0.14) { m.textContent = 'Inclina un poco más (unos 15°) y toca Listo.'; return; }
     const u = vortho(vortho(d, gyro.g0), gyro.dR); if (!u) { m.textContent = 'Ese movimiento se parece al del viraje. Inclina hacia ti la parte de arriba del teléfono.'; return; }
-    gcal.dU = u; gcal.kU = 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R; try { localStorage.setItem('c2sim-gyrocal', JSON.stringify(gcal)); } catch (e) {} setNeutral(gyro.g0); calHits = {}; calStep = 4; }
+    gcal.dU = u; gcal.kU = 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R; try { localStorage.setItem('c2sim-gyrocal2', JSON.stringify(gcal)); } catch (e) {} setNeutral(gyro.g0); calHits = {}; calStep = 4; }
   else { calStep = 1; calHits = {}; }
   calRender(); });
+$('calInv').addEventListener('click', () => { if (!gyro.dU) return; gcal = gcal || {}; gcal.dU = gyro.dU.map(v => -v); try { localStorage.setItem('c2sim-gyrocal2', JSON.stringify(gcal)); } catch (e) {} if (gyro.g0) setNeutral(gyro.g0); calHits.u = 0; calHits.d = 0; calRender(); });
 function calTick() { if (briefing === false || ctlMode !== 'gyro' || $('bGyro').hidden) return;
   if (calStep === 4) { let ch = false; const set = (k, c) => { if (c && !calHits[k]) { calHits[k] = 1; ch = true; } };
     set('r', gyro.ail > 0.4); set('l', gyro.ail < -0.4); set('u', gyro.elev > 0.4); set('d', gyro.elev < -0.4); if (ch) calRender(); }

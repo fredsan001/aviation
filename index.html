@@ -6,7 +6,7 @@
 <title>Simulador de maniobras · C2 · Piloto en USA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="sim.css?v=17">
+<link rel="stylesheet" href="sim.css?v=18">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head>
 <body>
@@ -93,7 +93,7 @@
   </div>
   <footer><span>Maniobras · Piloto en USA · Freddy Sandoval</span><span>ACS FAA-S-ACS-6C · AFH FAA-H-8083-3C · POH C172S / PA-28-161 · Modelo de vuelo simplificado · Verifica siempre el POH de tu avión</span></footer>
 </div>
-<script type="module" src="app.js?v=17"></script>
+<script type="module" src="app.js?v=18"></script>
 
   <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introH">
     <div class="holo ibox">
@@ -123,7 +123,7 @@
             <p class="caltxt" id="calTxt"></p>
             <canvas id="gViz" width="300" height="110"></canvas>
             <div class="calchk" id="calChecks" hidden></div>
-            <button class="btn" id="calBtn">Activar giroscopio</button>
+            <button class="btn" id="calBtn">Activar giroscopio</button> <button class="btn alt" id="calInv" hidden>Invertir cabeceo</button>
           </div>
           <p class="gnote">La calibración guarda tus movimientos: el teléfono aprende qué es «virar a la derecha» y «subir la nariz» como tú lo sostienes. Durante el vuelo, el botón <b>Centrar</b> del yugo fija de nuevo el neutro.</p>
         </div>
