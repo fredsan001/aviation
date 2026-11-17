@@ -7,9 +7,9 @@
 // Convenciones: nariz +X, arriba +Y, ala derecha +Z · bank + = derecha · rumbo 0 = norte (−Z)
 // ============================================================
 import * as THREE from 'three';
-import { makeC172 } from './c172.js?v=21';
-import { makePA28 } from './pa28.js?v=21';
-import { drawStrip, stripHeight } from './panel.js?v=21';
+import { makeC172 } from './c172.js?v=22';
+import { makePA28 } from './pa28.js?v=22';
+import { drawStrip, stripHeight } from './panel.js?v=22';
 
 const D2R = Math.PI / 180, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k;
 const $ = id => document.getElementById(id);
@@ -531,8 +531,8 @@ const gvec = (b, g) => { const B = b * D2R, Gm = g * D2R; return [Math.cos(B) * 
 const vdot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2], vsub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]], vlen = p => Math.hypot(...p);
 const vortho = (d, n) => { const k = vdot(d, n), r = [d[0] - k * n[0], d[1] - k * n[1], d[2] - k * n[2]], l = vlen(r); return l < 1e-3 ? null : r.map(x => x / l); };
 const shape = (d, dz, K) => (Math.abs(d) < dz ? 0 : (d - Math.sign(d) * dz) / K);
-let pinv = true, rinv = true; try { pinv = localStorage.getItem('c2sim-pinv') !== '0'; rinv = localStorage.getItem('c2sim-rinv') !== '0'; } catch (e) {}
-let gcal = null; try { gcal = JSON.parse(localStorage.getItem('c2sim-gyrocal4') || 'null'); } catch (e) {}
+let pinv = false, rinv = false; try { pinv = localStorage.getItem('c2sim-pinv2') === '1'; rinv = localStorage.getItem('c2sim-rinv2') === '1'; } catch (e) {}
+let gcal = null; try { gcal = JSON.parse(localStorage.getItem('c2sim-gyrocal5') || 'null'); } catch (e) {}
 function setNeutral(g) { gyro.g0 = g.slice();
   const R = (gcal && gcal.dR) || [1, 0, 0], U = (gcal && gcal.dU) || [0, -1, 0];
   gyro.dR = vortho(R, gyro.g0) || vortho([1, 0, 0], gyro.g0); gyro.dU = vortho(vortho(U, gyro.g0) || [0, -1, 0], gyro.dR) || vortho([0, -1, 0], gyro.g0); gyro.elev = 0; gyro.ail = 0; }
@@ -567,14 +567,14 @@ $('calBtn').addEventListener('click', async () => { const m = $('gMsg'); m.textC
   else if (calStep === 2) { const d = vsub(gyro.g, gyro.g0); if (vlen(d) < 0.14) { m.textContent = 'Inclina un poco más (unos 15°) y toca Listo.'; return; } gcal = { dR: vortho(d, gyro.g0), kR: 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R }; setNeutral(gyro.g0); calStep = 3; }
   else if (calStep === 3) { const d = vsub(gyro.g, gyro.g0); if (vlen(d) < 0.14) { m.textContent = 'Inclina un poco más (unos 15°) y toca Listo.'; return; }
     const u = vortho(vortho(d, gyro.g0), gyro.dR); if (!u) { m.textContent = 'Ese movimiento se parece al del viraje. Inclina hacia ti la parte de arriba del teléfono.'; return; }
-    gcal.dU = u; gcal.kU = 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R; try { localStorage.setItem('c2sim-gyrocal4', JSON.stringify(gcal)); } catch (e) {} setNeutral(gyro.g0); calHits = {}; calStep = 4; }
+    gcal.dU = u; gcal.kU = 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R; try { localStorage.setItem('c2sim-gyrocal5', JSON.stringify(gcal)); } catch (e) {} setNeutral(gyro.g0); calHits = {}; calStep = 4; }
   else { calStep = 1; calHits = {}; }
   calRender(); });
-function invRoll() { rinv = !rinv; try { localStorage.setItem('c2sim-rinv', rinv ? '1' : '0'); } catch (e) {} gyro.ail = 0; calHits.r = 0; calHits.l = 0; calRender(); }
+function invRoll() { rinv = !rinv; try { localStorage.setItem('c2sim-rinv2', rinv ? '1' : '0'); } catch (e) {} gyro.ail = 0; calHits.r = 0; calHits.l = 0; calRender(); }
 $('calInvR').addEventListener('click', invRoll);
 $('gyroInvR').addEventListener('click', e => { e.stopPropagation(); invRoll(); showToast('Virajes invertidos.'); });
 $('gyroInvR').addEventListener('pointerdown', e => e.stopPropagation());
-function invPitch() { pinv = !pinv; try { localStorage.setItem('c2sim-pinv', pinv ? '1' : '0'); } catch (e) {} gyro.elev = 0; calHits.u = 0; calHits.d = 0; calRender(); }
+function invPitch() { pinv = !pinv; try { localStorage.setItem('c2sim-pinv2', pinv ? '1' : '0'); } catch (e) {} gyro.elev = 0; calHits.u = 0; calHits.d = 0; calRender(); }
 $('calInv').addEventListener('click', invPitch);
 $('gyroInvF').addEventListener('click', e => { e.stopPropagation(); invPitch(); showToast('Cabeceo invertido: parte de arriba del celular hacia abajo = descender.'); });
 $('gyroInvF').addEventListener('pointerdown', e => e.stopPropagation());
