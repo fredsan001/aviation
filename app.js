@@ -7,9 +7,9 @@
 // Convenciones: nariz +X, arriba +Y, ala derecha +Z · bank + = derecha · rumbo 0 = norte (−Z)
 // ============================================================
 import * as THREE from 'three';
-import { makeC172 } from './c172.js';
-import { makePA28 } from './pa28.js';
-import { drawStrip, stripHeight } from './panel.js';
+import { makeC172 } from './c172.js?v=17';
+import { makePA28 } from './pa28.js?v=17';
+import { drawStrip, stripHeight } from './panel.js?v=17';
 
 const D2R = Math.PI / 180, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k;
 const $ = id => document.getElementById(id);
@@ -442,7 +442,7 @@ function loop(now) {
     }
     msgT += dt; if (msgT > 0.25) { msgT = 0; msg(); }
   }
-  render3d(now / 1000); drawCockpit(); hud(); panel(); gyroKnob();
+  render3d(now / 1000); drawCockpit(); hud(); panel(); gyroKnob(); calTick();
 }
 function finish() {
   done = true; renderSteps(); msg();
@@ -525,31 +525,65 @@ let ctlMode = 'touch', gyroSens = 'baja', gyroInv = false;
 // el giroscopio solo funciona si la página se abre sola (fuera del marco de Claude) y por https
 const canGyro = (() => { try { return window.self === window.top && typeof DeviceOrientationEvent !== 'undefined' && window.isSecureContext; } catch (e) { return false; } })();
 if (!canGyro) document.querySelectorAll('.gyroOnly').forEach(el => el.style.display = 'none');
-const gyro = { on: false, b0: null, v: null, elev: 0, ail: 0, got: 0 };
-function tiltVal(e) { const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-  if (e.beta == null || e.gamma == null) return null;
-  if (ang === 90) return [-e.gamma, e.beta]; if (ang === -90 || ang === 270) return [e.gamma, -e.beta]; if (ang === 180) return [-e.beta, -e.gamma]; return [e.beta, e.gamma]; }
-const wrap = d => (d > 180 ? d - 360 : d < -180 ? d + 360 : d);
+const gyro = { on: false, g: null, g0: null, dR: null, dU: null, elev: 0, ail: 0, got: 0, roll: 0, pitch: 0, raw: null };
+// vector de gravedad en ejes del teléfono (x derecha, y arriba, z hacia ti); no depende de la orientación de la pantalla
+const gvec = (b, g) => { const B = b * D2R, Gm = g * D2R; return [Math.cos(B) * Math.sin(Gm), -Math.sin(B), -Math.cos(B) * Math.cos(Gm)]; };
+const vdot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2], vsub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]], vlen = p => Math.hypot(...p);
+const vortho = (d, n) => { const k = vdot(d, n), r = [d[0] - k * n[0], d[1] - k * n[1], d[2] - k * n[2]], l = vlen(r); return l < 1e-3 ? null : r.map(x => x / l); };
 const shape = (d, dz, K) => (Math.abs(d) < dz ? 0 : (d - Math.sign(d) * dz) / K);
-function onOrient(e) { const v = tiltVal(e); if (!v) return; gyro.v = v; gyro.got++; if (gyro.b0 == null) gyro.b0 = v.slice();
-  const K = gyroSens === 'baja' ? 40 : 25, KR = gyroSens === 'baja' ? 35 : 22;
-  const tp = clamp((gyroInv ? 1 : -1) * shape(wrap(v[0] - gyro.b0[0]), 2.5, K), -1, 1);
-  const tr = clamp(shape(wrap(v[1] - gyro.b0[1]), 3, KR), -1, 1);
+let gcal = null; try { gcal = JSON.parse(localStorage.getItem('c2sim-gyrocal') || 'null'); } catch (e) {}
+function setNeutral(g) { gyro.g0 = g.slice();
+  const R = (gcal && gcal.dR) || [1, 0, 0], U = (gcal && gcal.dU) || [0, 1, 0];
+  gyro.dR = vortho(R, gyro.g0) || vortho([1, 0, 0], gyro.g0); gyro.dU = vortho(vortho(U, gyro.g0) || [0, 1, 0], gyro.dR) || vortho([0, 1, 0], gyro.g0); gyro.elev = 0; gyro.ail = 0; }
+function onOrient(e) { if (e.beta == null || e.gamma == null) return; gyro.raw = [e.beta, e.gamma]; const g = gvec(e.beta, e.gamma); gyro.g = g; gyro.got++;
+  if (!gyro.g0) setNeutral(g);
+  gyro.roll = Math.asin(clamp(vdot(g, gyro.dR), -1, 1)) / D2R; gyro.pitch = Math.asin(clamp(vdot(g, gyro.dU), -1, 1)) / D2R;
+  const f = gyroSens === 'baja' ? 1 : 0.65, K = Math.max(10, ((gcal && gcal.kU) || 30) * f), KR = Math.max(8, ((gcal && gcal.kR) || 18) * f);
+  const tp = clamp(shape(gyro.pitch, 2.5, K), -1, 1), tr = clamp(shape(gyro.roll, 3, KR), -1, 1);
   gyro.elev += (tp - gyro.elev) * 0.18; gyro.ail += (tr - gyro.ail) * 0.18; }
 async function enableGyro() {
   const msgEl = $('gMsg'); msgEl.textContent = '';
   try { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') throw new Error('perm'); } }
   catch (err) { setCtl('touch'); msgEl.textContent = 'No se dio permiso para usar el giroscopio. Seguimos con el yugo táctil.'; return false; }
-  if (!gyro.on) { addEventListener('deviceorientation', onOrient); gyro.on = true; }
-  gyro.b0 = null; gyro.elev = 0; gyro.ail = 0; const n0 = gyro.got;
-  setTimeout(() => { if (ctlMode === 'gyro' && gyro.got === n0) { setCtl('touch'); const t = 'Este teléfono o navegador no envía datos del giroscopio en esta página. Seguimos con el yugo táctil.'; $('gMsg').textContent = t; showToast(t); } }, 1800);
+  if (gyro.on) return true;
+  addEventListener('deviceorientation', onOrient); gyro.on = true; const n0 = gyro.got;
+  setTimeout(() => { if (ctlMode === 'gyro' && gyro.got === n0) { gyro.on = false; removeEventListener('deviceorientation', onOrient); setCtl('touch'); const t = 'Este teléfono o navegador no envía datos del giroscopio en esta página. Seguimos con el yugo táctil.'; $('gMsg').textContent = t; showToast(t); } }, 1800);
   return true; }
+// ---- calibración y prueba del giroscopio (en el briefing) ----
+let calStep = 0, calHits = {};
+const CAL = [
+  { t: 'Toca <b>Activar giroscopio</b>.', b: 'Activar giroscopio' },
+  { t: 'Sostén el teléfono como vas a volar y toca <b>Fijar neutro</b>.', b: 'Fijar neutro' },
+  { t: 'Inclina el teléfono como si viraras a la <b>DERECHA</b> (como un volante o bajando el lado derecho) y, sin moverlo, toca <b>Listo</b>.', b: 'Listo' },
+  { t: 'Vuelve al centro e inclina el teléfono para <b>SUBIR LA NARIZ</b> (tirar del yugo) y, sin moverlo, toca <b>Listo</b>.', b: 'Listo' },
+  { t: '<b>Prueba:</b> vira a los dos lados, sube y baja la nariz. Cuando veas las cuatro ✓, toca <b>Iniciar</b>.', b: 'Repetir calibración' }];
+function calRender() { const s = CAL[calStep]; $('calTxt').innerHTML = `<span class="cn2">${Math.min(calStep + 1, 5)}/5</span> ${s.t}`; $('calBtn').textContent = s.b; $('calChecks').hidden = calStep < 4;
+  $('calChecks').innerHTML = [['r', 'Viraje derecha'], ['l', 'Viraje izquierda'], ['u', 'Nariz arriba'], ['d', 'Nariz abajo']].map(([k, n]) => `<span class="${calHits[k] ? 'ok' : ''}">${calHits[k] ? '✓' : '○'} ${n}</span>`).join(''); }
+$('calBtn').addEventListener('click', async () => { const m = $('gMsg'); m.textContent = '';
+  if (calStep === 0) { setCtl('gyro'); if (await enableGyro()) { calStep = 1; gyro.g0 = null; } }
+  else if (calStep === 1) { if (!gyro.g) { m.textContent = 'Todavía no llegan datos del sensor.'; return; } gcal = null; setNeutral(gyro.g); calStep = 2; }
+  else if (calStep === 2) { const d = vsub(gyro.g, gyro.g0); if (vlen(d) < 0.14) { m.textContent = 'Inclina un poco más (unos 15°) y toca Listo.'; return; } gcal = { dR: vortho(d, gyro.g0), kR: 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R }; setNeutral(gyro.g0); calStep = 3; }
+  else if (calStep === 3) { const d = vsub(gyro.g, gyro.g0); if (vlen(d) < 0.14) { m.textContent = 'Inclina un poco más (unos 15°) y toca Listo.'; return; }
+    const u = vortho(vortho(d, gyro.g0), gyro.dR); if (!u) { m.textContent = 'Ese movimiento se parece al del viraje. Inclina hacia ti la parte de arriba del teléfono.'; return; }
+    gcal.dU = u; gcal.kU = 2 * Math.asin(Math.min(1, vlen(d) / 2)) / D2R; try { localStorage.setItem('c2sim-gyrocal', JSON.stringify(gcal)); } catch (e) {} setNeutral(gyro.g0); calHits = {}; calStep = 4; }
+  else { calStep = 1; calHits = {}; }
+  calRender(); });
+function calTick() { if (briefing === false || ctlMode !== 'gyro' || $('bGyro').hidden) return;
+  if (calStep === 4) { let ch = false; const set = (k, c) => { if (c && !calHits[k]) { calHits[k] = 1; ch = true; } };
+    set('r', gyro.ail > 0.4); set('l', gyro.ail < -0.4); set('u', gyro.elev > 0.4); set('d', gyro.elev < -0.4); if (ch) calRender(); }
+  const c = $('gViz'), x = c.getContext('2d'), W = c.width, H = c.height; x.clearRect(0, 0, W, H);
+  x.strokeStyle = 'rgba(79,216,255,.5)'; x.lineWidth = 2; x.strokeRect(1, 1, H - 2, H - 2); x.beginPath(); x.moveTo(H / 2, 6); x.lineTo(H / 2, H - 6); x.moveTo(6, H / 2); x.lineTo(H - 6, H / 2); x.stroke();
+  x.fillStyle = '#e6f4ff'; x.beginPath(); x.arc(H / 2 + gyro.ail * (H / 2 - 12), H / 2 - gyro.elev * (H / 2 - 12), 9, 0, 7); x.fill();
+  x.save(); x.translate(H + (W - H) / 2, H / 2); x.rotate(gyro.ail * 0.6); x.fillStyle = '#4fd8ff'; x.fillRect(-46, -2 + gyro.elev * -14, 92, 4); x.fillRect(-4, -12 + gyro.elev * -14, 8, 22); x.restore();
+  x.fillStyle = '#9fb6cf'; x.font = '600 11px Inter,sans-serif'; x.textAlign = 'center';
+  x.fillText(`Viraje ${Math.round(gyro.ail * 100)}% · Nariz ${Math.round(gyro.elev * 100)}%`, H + (W - H) / 2, H - 22);
+  x.fillText(gyro.raw ? `β ${gyro.raw[0].toFixed(0)}° γ ${gyro.raw[1].toFixed(0)}° · ${gyro.got} lecturas` : 'sin datos del sensor', H + (W - H) / 2, H - 6); }
 function setCtl(m) { ctlMode = m; $('mTouch').classList.toggle('on', m === 'touch'); $('mGyro').classList.toggle('on', m === 'gyro'); $('yoke').classList.toggle('gyro', m === 'gyro');
   document.querySelectorAll('[data-bctl]').forEach(b => b.classList.toggle('on', b.dataset.bctl === m)); $('bGyro').hidden = m !== 'gyro'; if (m !== 'gyro') { gyro.elev = 0; gyro.ail = 0; } }
 $('mTouch').addEventListener('click', () => setCtl('touch'));
 $('mGyro').addEventListener('click', () => { setCtl('gyro'); enableGyro(); });
-$('gyroCal').addEventListener('click', e => { e.stopPropagation(); gyro.b0 = gyro.v ? gyro.v.slice() : null; gyro.elev = 0; gyro.ail = 0; });
+$('gyroCal').addEventListener('click', e => { e.stopPropagation(); if (gyro.g) setNeutral(gyro.g); });
 $('gyroCal').addEventListener('pointerdown', e => e.stopPropagation());
 function showToast(t) { const a = $('alert'); a.textContent = t; a.style.display = 'block'; a.style.whiteSpace = 'normal'; a.style.background = 'rgba(30,41,59,.95)'; a.style.boxShadow = 'none'; a.style.fontSize = '12px'; a.style.letterSpacing = '0';
   setTimeout(() => { a.style.display = ''; a.style.whiteSpace = ''; a.style.background = ''; a.style.boxShadow = ''; a.style.fontSize = ''; a.style.letterSpacing = ''; a.textContent = ''; }, 5000); }
@@ -566,14 +600,14 @@ function fillBrief() { $('bMod').textContent = 'BRIEFING' + (ex.mod ? ' · C2 ·
   $('bNote').innerHTML = ex.note || ''; $('bNote').style.display = ex.note ? '' : 'none';
   document.querySelectorAll('[data-bac]').forEach(b => b.classList.toggle('on', b.dataset.bac === P));
   $('bSpeeds').textContent = `${A.name}: VS1 ${A.vs1} · VS0 ${A.vs0} · VX ${A.vx} · VY ${A.vy} · mejor planeo ${A.glide} kt · flaps ${A.flaps.join('/')}°`;
-  document.querySelectorAll('[data-sens]').forEach(b => b.classList.toggle('on', b.dataset.sens === gyroSens)); $('bInv').checked = gyroInv; setCtl(ctlMode); }
+  document.querySelectorAll('[data-sens]').forEach(b => b.classList.toggle('on', b.dataset.sens === gyroSens)); setCtl(ctlMode); calRender(); }
 function openBrief() { briefing = true; fillBrief(); $('gMsg').textContent = ''; $('introPick').hidden = true; $('introBrief').hidden = false; $('intro').classList.remove('hide'); $('intro').scrollTop = 0; }
 document.querySelectorAll('[data-bac]').forEach(b => b.addEventListener('click', () => { setPlane(b.dataset.bac); fillBrief(); }));
-document.querySelectorAll('[data-bctl]').forEach(b => b.addEventListener('click', () => setCtl(b.dataset.bctl)));
+document.querySelectorAll('[data-bctl]').forEach(b => b.addEventListener('click', () => { setCtl(b.dataset.bctl); if (b.dataset.bctl === 'gyro') { if (gyro.on && calStep === 0) calStep = 1; calRender(); } }));
 document.querySelectorAll('[data-sens]').forEach(b => b.addEventListener('click', () => { gyroSens = b.dataset.sens; fillBrief(); }));
-$('bInv').addEventListener('change', e => { gyroInv = e.target.checked; });
+
 $('bBack').addEventListener('click', openPick);
-$('bStart').addEventListener('click', async () => { if (ctlMode === 'gyro') await enableGyro(); reset(); briefing = false; $('intro').classList.add('hide'); });
+$('bStart').addEventListener('click', async () => { if (ctlMode === 'gyro') await enableGyro(); if (ctlMode === 'gyro' && calStep < 4 && gyro.g) setNeutral(gyro.g); reset(); briefing = false; $('intro').classList.add('hide'); });
 
 // ---------------- arranque ----------------
 resize();
@@ -582,4 +616,4 @@ setPlane('pa28'); buildSelect(); setView('chase');
 $('loading').remove();
 if (EX.some(e => e.id === startId)) openBrief(); else openPick();
 requestAnimationFrame(loop);
-window.__sim = { start() { briefing = false; $('intro').classList.add('hide'); }, openPick, openBrief, get st() { return st; }, step, setExercise, setPlane, setView, check, finish, get ex() { return ex; } };
+window.__sim = { get gyro() { return gyro; }, get cal() { return { calStep, calHits, gcal }; }, start() { briefing = false; $('intro').classList.add('hide'); }, openPick, openBrief, get st() { return st; }, step, setExercise, setPlane, setView, check, finish, get ex() { return ex; } };

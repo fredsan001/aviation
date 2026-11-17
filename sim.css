@@ -213,3 +213,13 @@ footer{margin-top:18px;color:var(--sub);font-size:12px;display:flex;justify-cont
 .yoke.gyro .gcal,.yoke.gyro .gtag{display:block}
 .yoke.gyro .b{display:none}
 @media(max-width:600px){ .ih{font-size:20px} .ibox{padding:16px 14px 18px} .bseg button{padding:8px 10px;font-size:12px} .ymode button{padding:3px 6px;font-size:10px} .yoke.gyro .gtag{display:none} }
+
+/* v1.7 · calibración del giroscopio */
+.calbox{margin-top:10px;border:1px solid rgba(var(--cy),.45);border-radius:12px;padding:12px;background:#06142a}
+.calh{font-size:11px;font-weight:800;letter-spacing:.14em;color:rgb(var(--cy));text-transform:uppercase;margin-bottom:6px}
+.caltxt{margin:0 0 8px;font-size:14px;line-height:1.45;color:#e6f4ff}
+.cn2{display:inline-block;background:rgba(var(--cy),.25);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:800;margin-right:4px}
+#gViz{display:block;width:100%;max-width:300px;height:auto;aspect-ratio:300/110;margin:4px 0 8px}
+.calchk{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.calchk span{font-size:13px;font-weight:700;color:var(--sub);background:rgba(3,12,28,.6);border:1px solid rgba(var(--cy),.2);border-radius:8px;padding:6px 8px}
+.calchk span.ok{color:#22c55e;border-color:#22c55e}

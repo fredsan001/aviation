@@ -6,7 +6,7 @@
 <title>Simulador de maniobras · C2 · Piloto en USA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="sim.css">
+<link rel="stylesheet" href="sim.css?v=17">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head>
 <body>
@@ -93,7 +93,7 @@
   </div>
   <footer><span>Maniobras · Piloto en USA · Freddy Sandoval</span><span>ACS FAA-S-ACS-6C · AFH FAA-H-8083-3C · POH C172S / PA-28-161 · Modelo de vuelo simplificado · Verifica siempre el POH de tu avión</span></footer>
 </div>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=17"></script>
 
   <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introH">
     <div class="holo ibox">
@@ -118,8 +118,14 @@
         <div class="seg bseg gyroOnly" id="bCtl"><button data-bctl="touch" class="cy">Yugo táctil</button><button data-bctl="gyro" class="cy">Giroscopio del teléfono</button></div>
         <div id="bGyro" class="bgyro" hidden>
           <div class="seg bseg" id="bSens"><button data-sens="baja" class="cy">Sensibilidad baja</button><button data-sens="media" class="cy">Media</button></div>
-          <label class="inv"><input type="checkbox" id="bInv"> Invertir (inclinar la parte de arriba hacia ti = nariz abajo)</label>
-          <p class="gnote">Sostén el teléfono en la posición cómoda y pulsa <b>Iniciar</b>: esa posición queda como neutro. <b>Cabeceo:</b> inclina la parte de arriba del teléfono hacia ti para tirar (nariz arriba) y hacia afuera para empujar. <b>Virajes:</b> inclina el teléfono a la derecha o a la izquierda (baja ese lado) para mover los alerones. Botón <b>Centrar</b> para fijar el neutro de nuevo.</p>
+          <div class="calbox">
+            <div class="calh">Calibración y prueba del giroscopio</div>
+            <p class="caltxt" id="calTxt"></p>
+            <canvas id="gViz" width="300" height="110"></canvas>
+            <div class="calchk" id="calChecks" hidden></div>
+            <button class="btn" id="calBtn">Activar giroscopio</button>
+          </div>
+          <p class="gnote">La calibración guarda tus movimientos: el teléfono aprende qué es «virar a la derecha» y «subir la nariz» como tú lo sostienes. Durante el vuelo, el botón <b>Centrar</b> del yugo fija de nuevo el neutro.</p>
         </div>
         <p class="gmsg" id="gMsg"></p>
         <div class="bbtns"><button class="btn alt" id="bBack">◀ Otra lección</button><button class="btn go" id="bStart">Iniciar ▶</button></div>
