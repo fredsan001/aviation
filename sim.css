@@ -223,3 +223,6 @@ footer{margin-top:18px;color:var(--sub);font-size:12px;display:flex;justify-cont
 .calchk{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
 .calchk span{font-size:13px;font-weight:700;color:var(--sub);background:rgba(3,12,28,.6);border:1px solid rgba(var(--cy),.2);border-radius:8px;padding:6px 8px}
 .calchk span.ok{color:#22c55e;border-color:#22c55e}
+
+.gcal.ginv{right:auto;left:6px}
+.yoke.gyro .gtag{display:none}

@@ -2,11 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simulador de maniobras · C2 · Piloto en USA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="sim.css?v=18">
+<link rel="stylesheet" href="sim.css?v=19">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head>
 <body>
@@ -53,7 +54,7 @@
       <div class="holo controls" id="paneCtl">
         <div class="ctl yokebox">
           <h3 class="ykh">Yugo <span class="ymode gyroOnly" role="group" aria-label="Control del elevador"><button id="mTouch" class="on">Táctil</button><button id="mGyro">Giro</button></span></h3>
-          <div class="yoke" id="yoke" aria-label="Yugo virtual: arrastra"><div class="knob" id="knob"></div><span class="t">TIRAR</span><span class="b">EMPUJAR</span><span class="l">IZQ</span><span class="r">DER</span><button class="gcal" id="gyroCal">Centrar</button><span class="gtag" id="gyroTag">GIROSCOPIO</span></div>
+          <div class="yoke" id="yoke" aria-label="Yugo virtual: arrastra"><div class="knob" id="knob"></div><span class="t">TIRAR</span><span class="b">EMPUJAR</span><span class="l">IZQ</span><span class="r">DER</span><button class="gcal" id="gyroCal">Centrar</button><button class="gcal ginv" id="gyroInvF" title="Invertir cabeceo">⇅ Invertir</button><span class="gtag" id="gyroTag">GIROSCOPIO</span></div>
         </div>
         <div class="ctl rows">
           <div class="row"><span class="lb">Acelerador</span><input id="thr" type="range" min="0" max="100" value="70" aria-label="Acelerador"><b id="rpmv" class="mono">2350</b></div>
@@ -93,7 +94,7 @@
   </div>
   <footer><span>Maniobras · Piloto en USA · Freddy Sandoval</span><span>ACS FAA-S-ACS-6C · AFH FAA-H-8083-3C · POH C172S / PA-28-161 · Modelo de vuelo simplificado · Verifica siempre el POH de tu avión</span></footer>
 </div>
-<script type="module" src="app.js?v=18"></script>
+<script type="module" src="app.js?v=19"></script>
 
   <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introH">
     <div class="holo ibox">
