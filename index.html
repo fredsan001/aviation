@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de maniobras · C2 · Piloto en USA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sim.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">C2 · SIMULADOR</span>
+    <span class="kick">MANIOBRAS Y ENTRENAMIENTO DE VUELO</span>
+    <h1 id="exTitle">Simulador de maniobras</h1>
+    <div class="en" id="exEn"></div>
+  </header>
+
+  <div class="grid">
+    <section class="left">
+    <div class="bar" id="topbar">
+        <div class="seg" role="group" aria-label="Avión">
+          <button class="pa28 on" data-ac="pa28">Piper PA-28<span class="lg"> · ala baja</span></button>
+          <button class="c172" data-ac="c172">Cessna 172<span class="lg"> · ala alta</span></button>
+        </div>
+        <div class="seg" role="group" aria-label="Vista">
+          <button class="cy on" data-view="chase">Persec<span class="lg2">ución</span></button>
+          <button class="cy" data-view="side">Lateral</button>
+          <button class="cy" data-view="front">Frente</button>
+          <button class="cy" data-view="top">Arriba</button>
+          <button class="cy" data-view="cockpit">Cabina</button>
+        </div>
+        <div class="seg tools" role="group" aria-label="Simulación">
+          <button class="cy on" id="instBtn" aria-pressed="true" title="Mostrar u ocultar los instrumentos">Instr<span class="lg2">umentos</span></button>
+          <button id="pauseBtn" aria-label="Pausa" title="Pausa (P)">❚❚</button>
+          <button id="restartBtn" aria-label="Reiniciar" title="Reiniciar">↺</button>
+        </div>
+      </div>
+      <div class="holo stage" id="stage">
+        <i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+        <div id="loading">CARGANDO SIMULADOR…</div>
+        <canvas id="cv" aria-label="Vista 3D del avión"></canvas>
+        <canvas id="cockpit" aria-hidden="true"></canvas>
+        <canvas id="panel" aria-label="Instrumentos de vuelo"></canvas>
+        <div class="alert" id="alert" role="status"></div>
+        <div class="hud" id="hud"></div>
+        <div class="pause" id="pauseBox"><b>PAUSA</b><span>Pulsa <kbd>P</kbd> o ▶ para seguir</span></div>
+        <div class="hint" id="dragHint">Arrastra para girar la cámara · rueda o pellizco para acercar</div>
+      </div>
+
+      <div class="holo controls" id="paneCtl">
+        <div class="ctl yokebox">
+          <h3 class="ykh">Yugo <span class="ymode gyroOnly" role="group" aria-label="Control del elevador"><button id="mTouch" class="on">Táctil</button><button id="mGyro">Giro</button></span></h3>
+          <div class="yoke" id="yoke" aria-label="Yugo virtual: arrastra"><div class="knob" id="knob"></div><span class="t">TIRAR</span><span class="b">EMPUJAR</span><span class="l">IZQ</span><span class="r">DER</span><button class="gcal" id="gyroCal">Centrar</button><span class="gtag" id="gyroTag">GIROSCOPIO · profundidad</span></div>
+        </div>
+        <div class="ctl rows">
+          <div class="row"><span class="lb">Acelerador</span><input id="thr" type="range" min="0" max="100" value="70" aria-label="Acelerador"><b id="rpmv" class="mono">2350</b></div>
+          <div class="row"><span class="lb">Pedales</span><div class="btnrow"><button class="hold" data-hold="rl">◀ Izq.</button><button class="hold" data-hold="rr">Der. ▶</button></div></div>
+          <div class="trimbar pedbar" id="pedBar" title="Doble toque: pedales al neutro"><i id="pedMark"></i></div>
+          <div class="row"><span class="lb">Compensador</span><div class="btnrow"><button class="hold" data-hold="trimDn">Nariz ▼</button><button class="hold" data-hold="trimUp">Nariz ▲</button></div></div>
+          <div class="trimbar" id="trimBar" title="Doble toque: compensador al neutro"><i id="trimMark"></i></div>
+          <div class="row"><span class="lb">Flaps</span><div class="flaps" id="flapsBox"></div></div>
+        </div>
+      </div>
+      <p class="keys" id="keysTxt">Teclado: <kbd>↑</kbd><kbd>↓</kbd> elevador · <kbd>←</kbd><kbd>→</kbd> alerones · <kbd>Z</kbd><kbd>X</kbd> pedales · <kbd>A</kbd><kbd>S</kbd> acelerador · <kbd>T</kbd><kbd>G</kbd> compensador · <kbd>F</kbd><kbd>V</kbd> flaps · <kbd>C</kbd> cambiar vista · <kbd>P</kbd> pausa</p>
+    </section>
+
+    <aside class="side">
+      <div class="holo pane" id="paneEx">
+        <h2>Ejercicio</h2>
+        <label class="sel" for="exSel">Elige qué maniobra se evalúa</label>
+        <select id="exSel"></select>
+        <p id="exBrief"></p>
+        <div class="cmp" id="exNote"></div>
+      </div>
+      <div class="holo pane" id="paneSteps">
+        <h2>Pasos</h2>
+        <ol class="steps" id="steps"></ol>
+        <div class="holdbar" aria-hidden="true"><i id="hold"></i></div>
+        <div class="msg" id="msg" aria-live="polite"></div>
+        <div class="meters" id="meters"></div>
+      </div>
+      <div class="holo pane result" id="result">
+        <h2>Resultado</h2>
+        <div class="score" id="score"></div>
+        <div class="stats" id="rstats"></div>
+        <p id="rtext"></p>
+        <button class="btn" id="againBtn">Repetir</button><button class="btn alt" id="nextBtn">Siguiente ejercicio ▶</button>
+      </div>
+    </aside>
+  </div>
+  <footer><span>Maniobras · Piloto en USA · Freddy Sandoval</span><span>ACS FAA-S-ACS-6C · AFH FAA-H-8083-3C · POH C172S / PA-28-161 · Modelo de vuelo simplificado · Verifica siempre el POH de tu avión</span></footer>
+</div>
+<script type="module" src="app.js"></script>
+
+  <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introH">
+    <div class="holo ibox">
+      <div id="introPick">
+        <span class="badge">C2 · SIMULADOR</span>
+        <h2 id="introH" class="ih">¿Qué lección vas a practicar?</h2>
+        <p class="isub">Elige la maniobra. Después verás el briefing y podrás iniciar la simulación.</p>
+        <div id="pickList"></div>
+      </div>
+      <div id="introBrief" hidden>
+        <span class="badge" id="bMod">BRIEFING</span>
+        <h2 class="ih" id="bTitle"></h2>
+        <div class="en" id="bEn"></div>
+        <p class="bwhat" id="bBrief"></p>
+        <h3 class="bh">Lo que vas a hacer</h3>
+        <ol class="bsteps" id="bSteps"></ol>
+        <div class="cmp" id="bNote"></div>
+        <h3 class="bh">Avión</h3>
+        <div class="seg bseg" id="bPlane"><button data-bac="pa28" class="pa28">Piper PA-28 · ala baja</button><button data-bac="c172" class="c172">Cessna 172 · ala alta</button></div>
+        <div class="bspeeds mono" id="bSpeeds"></div>
+        <h3 class="bh gyroOnly">Control del elevador (profundidad)</h3>
+        <div class="seg bseg gyroOnly" id="bCtl"><button data-bctl="touch" class="cy">Yugo táctil</button><button data-bctl="gyro" class="cy">Giroscopio del teléfono</button></div>
+        <div id="bGyro" class="bgyro" hidden>
+          <div class="seg bseg" id="bSens"><button data-sens="baja" class="cy">Sensibilidad baja</button><button data-sens="media" class="cy">Media</button></div>
+          <label class="inv"><input type="checkbox" id="bInv"> Invertir (inclinar la parte de arriba hacia ti = nariz abajo)</label>
+          <p class="gnote">Sostén el teléfono en la posición cómoda y pulsa <b>Iniciar</b>: esa posición queda como neutro. Inclina la parte de arriba del teléfono hacia ti para tirar (nariz arriba) y hacia afuera para empujar. Los alerones siguen en el yugo (arrastrar a los lados). Botón <b>Centrar</b> para fijar el neutro de nuevo.</p>
+        </div>
+        <p class="gmsg" id="gMsg"></p>
+        <div class="bbtns"><button class="btn alt" id="bBack">◀ Otra lección</button><button class="btn go" id="bStart">Iniciar ▶</button></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
